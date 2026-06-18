@@ -1,0 +1,66 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Press Start 2P", "VT323", monospace;
+  --font-mono: "VT323", ui-monospace, monospace;
+
+  --color-ink: #0a0a12;
+  --color-ink-2: #13121f;
+  --color-panel: #181626;
+
+  --color-violet-50: #f1edff;
+  --color-violet-200: #beb0ff;
+  --color-violet-400: #8a72f2;
+  --color-violet-600: #5c3fc4;
+  --color-violet-800: #34218a;
+
+  --color-amber-200: #ffe8a3;
+  --color-amber-400: #ffc94d;
+  --color-amber-600: #d9920f;
+
+  --color-coral-400: #ff6b5e;
+  --color-coral-600: #d6402f;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  background: var(--color-ink);
+  color: var(--color-violet-50);
+}
+
+.scanlines {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.025) 0px,
+    rgba(255, 255, 255, 0.025) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+.crt-vignette {
+  box-shadow: inset 0 0 120px rgba(0, 0, 0, 0.65);
+}
+
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  92% { opacity: 1; }
+  93% { opacity: 0.82; }
+  94% { opacity: 1; }
+}
+
+.flicker {
+  animation: flicker 6s infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.pulse-glow {
+  animation: pulse-glow 1s infinite;
+}
