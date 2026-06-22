@@ -24,6 +24,9 @@ export default function Leaderboard({ scores, loading }) {
                 <span className="truncate">{entry.name}</span>
               </span>
               <span className="flex items-center gap-3 text-violet-200/60 shrink-0">
+                <span className="text-[10px] uppercase text-violet-400">
+                  {entry.difficulty ?? "normal"}
+                </span>
                 <span className="text-xs">lvl {entry.level}</span>
                 <span className="text-amber-400 font-medium">
                   {entry.score.toLocaleString()}

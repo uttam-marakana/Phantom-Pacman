@@ -21,7 +21,30 @@ function Cell({ value }) {
   return <div />;
 }
 
-export default function MazeGrid({ maze, player, ghosts, powered }) {
+function Sprite({ x, y, glyph, sizeClass, label }) {
+  return (
+    <div
+      className={`absolute flex items-center justify-center ${sizeClass} transition-[left,top] duration-100 ease-linear`}
+      style={{
+        width: `${100 / COLS}%`,
+        height: `${100 / ROWS}%`,
+        left: `${(x / COLS) * 100}%`,
+        top: `${(y / ROWS) * 100}%`,
+      }}
+      aria-hidden="true"
+      title={label}
+    >
+      {glyph}
+    </div>
+  );
+}
+
+/**
+ * `player` is always rendered as player 1. Pass `player2` to additionally
+ * render a second player (used in online multiplayer) with a distinct
+ * glyph so the two are easy to tell apart at a glance.
+ */
+export default function MazeGrid({ maze, player, player2, ghosts, powered }) {
   return (
     <div
       className="relative w-full overflow-hidden rounded-lg border border-violet-600/40 bg-ink-2 crt-vignette scanlines"
@@ -41,36 +64,22 @@ export default function MazeGrid({ maze, player, ghosts, powered }) {
         )}
       </div>
 
-      {/* Player */}
-      <div
-        className="absolute flex items-center justify-center text-[3vw] sm:text-base transition-[left,top] duration-100 ease-linear"
-        style={{
-          width: `${100 / COLS}%`,
-          height: `${100 / ROWS}%`,
-          left: `${(player.x / COLS) * 100}%`,
-          top: `${(player.y / ROWS) * 100}%`,
-        }}
-        aria-hidden="true"
-      >
-        😮
-      </div>
+      <Sprite x={player.x} y={player.y} glyph="😮" sizeClass="text-[3vw] sm:text-base" label="Player 1" />
 
-      {/* Ghosts */}
+      {player2 && (
+        <Sprite x={player2.x} y={player2.y} glyph="😎" sizeClass="text-[3vw] sm:text-base" label="Player 2" />
+      )}
+
       {ghosts.map((g, i) =>
         g.eaten ? null : (
-          <div
+          <Sprite
             key={i}
-            className="absolute flex items-center justify-center text-[2.6vw] sm:text-sm transition-[left,top] duration-150 ease-linear"
-            style={{
-              width: `${100 / COLS}%`,
-              height: `${100 / ROWS}%`,
-              left: `${(g.x / COLS) * 100}%`,
-              top: `${(g.y / ROWS) * 100}%`,
-            }}
-            aria-hidden="true"
-          >
-            {powered ? "💙" : GHOST_THEME[i].glyph}
-          </div>
+            x={g.x}
+            y={g.y}
+            glyph={powered ? "💙" : GHOST_THEME[i].glyph}
+            sizeClass="text-[2.6vw] sm:text-sm"
+            label={GHOST_THEME[i].label}
+          />
         )
       )}
     </div>

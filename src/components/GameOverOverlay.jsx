@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-export default function GameOverOverlay({ score, level, onSubmit, onRestart, submitting }) {
+export default function GameOverOverlay({ score, level, difficulty, onSubmit, onRestart, submitting }) {
   const [name, setName] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
@@ -8,7 +8,7 @@ export default function GameOverOverlay({ score, level, onSubmit, onRestart, sub
     e.preventDefault();
     if (!name.trim() || submitted) return;
     setSubmitted(true);
-    onSubmit({ name: name.trim(), score, level });
+    onSubmit({ name: name.trim(), score, level, difficulty });
   }
 
   return (
