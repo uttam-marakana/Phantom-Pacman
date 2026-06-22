@@ -49,10 +49,57 @@ export const POINTS = {
   LEVEL_CLEAR: 500,
 };
 
-export const TIMINGS = {
-  GHOST_MOVE_MS: 380,
-  TICK_MS: 200,
-  POWER_DURATION_TICKS: 35, // ~7s at 200ms tick
+export const TICK_MS = 200;
+
+// Difficulty presets. Each defines a baseline ghost speed (ms per ghost
+// step — lower is faster), how many power-up ticks you get, and how many
+// starting lives. Level-ramp then nudges these further as you progress.
+export const DIFFICULTY = {
+  easy: {
+    label: "easy",
+    baseGhostMoveMs: 460,
+    basePowerTicks: 45,
+    lives: 4,
+  },
+  normal: {
+    label: "normal",
+    baseGhostMoveMs: 380,
+    basePowerTicks: 35,
+    lives: 3,
+  },
+  hard: {
+    label: "hard",
+    baseGhostMoveMs: 300,
+    basePowerTicks: 25,
+    lives: 2,
+  },
 };
+
+export const DEFAULT_DIFFICULTY = "normal";
+
+// Floors so high levels stay challenging-but-fair rather than impossible.
+const MIN_GHOST_MOVE_MS = 160;
+const MIN_POWER_TICKS = 12;
+
+/**
+ * Per-level ramp on top of a difficulty preset. Ghosts speed up ~4% per
+ * level (capped at a floor), and power-up duration shrinks ~3% per level
+ * (also capped). Level 1 always matches the preset's base values exactly.
+ */
+export function getLevelTimings(difficultyKey, level) {
+  const preset = DIFFICULTY[difficultyKey] ?? DIFFICULTY[DEFAULT_DIFFICULTY];
+  const steps = Math.max(0, level - 1);
+
+  const ghostMoveMs = Math.max(
+    MIN_GHOST_MOVE_MS,
+    Math.round(preset.baseGhostMoveMs * Math.pow(0.96, steps))
+  );
+  const powerTicks = Math.max(
+    MIN_POWER_TICKS,
+    Math.round(preset.basePowerTicks * Math.pow(0.97, steps))
+  );
+
+  return { ghostMoveMs, powerTicks, lives: preset.lives };
+}
 
 export const STARTING_LIVES = 3;

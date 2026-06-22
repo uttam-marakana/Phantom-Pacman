@@ -4,6 +4,24 @@ export function cloneMaze(template) {
   return template.map((row) => [...row]);
 }
 
+/**
+ * Firestore cannot store arrays-of-arrays, so the 2D maze grid has to be
+ * flattened to a single array before writing and rebuilt after reading.
+ * Used only at the Firestore boundary (see lib/rooms.js) — everywhere else
+ * in game logic keeps working with the normal 2D maze[y][x] shape.
+ */
+export function flattenMaze(maze) {
+  return maze.flat();
+}
+
+export function unflattenMaze(flat, cols = COLS) {
+  const rows = [];
+  for (let i = 0; i < flat.length; i += cols) {
+    rows.push(flat.slice(i, i + cols));
+  }
+  return rows;
+}
+
 export function canMove(maze, x, y) {
   if (x < 0 || x >= COLS || y < 0 || y >= ROWS) return false;
   return maze[y][x] !== CELL.WALL;
@@ -43,4 +61,27 @@ export function pickGhostDirection(maze, ghost) {
   if (options.length === 0) return ghost;
   const pick = options[Math.floor(Math.random() * options.length)];
   return { ...ghost, dx: pick.dx, dy: pick.dy, x: ghost.x + pick.dx, y: ghost.y + pick.dy };
+}
+
+/**
+ * Check a single player's position against the ghost list. Returns
+ * { ghosts, caught, ateGhost } — `ghosts` reflects any eaten-state changes.
+ * Used by both the solo and host-authoritative multiplayer loops so the
+ * collision rule stays in exactly one place.
+ */
+export function resolvePlayerGhostCollision(ghosts, player, powered) {
+  let caught = false;
+  let ateGhost = false;
+  const nextGhosts = ghosts.map((g) => {
+    if (g.eaten) return g;
+    if (g.x === player.x && g.y === player.y) {
+      if (powered) {
+        ateGhost = true;
+        return { ...g, eaten: true };
+      }
+      caught = true;
+    }
+    return g;
+  });
+  return { ghosts: nextGhosts, caught, ateGhost };
 }
