@@ -1,4 +1,10 @@
+import { useState } from "react";
+import { DEFAULT_DIFFICULTY } from "../game/constants";
+import DifficultyPicker from "./DifficultyPicker";
+
 export default function StartOverlay({ onStart }) {
+  const [difficulty, setDifficulty] = useState(DEFAULT_DIFFICULTY);
+
   return (
     <div className="absolute inset-0 z-10 flex items-center justify-center bg-ink/85 backdrop-blur-sm rounded-lg">
       <div className="flex flex-col items-center gap-5 px-6 text-center">
@@ -6,8 +12,9 @@ export default function StartOverlay({ onStart }) {
           Eat every dot. Grab the glowing pellets to turn the hunt around.
           Arrow keys, WASD, or the pad below.
         </p>
+        <DifficultyPicker value={difficulty} onChange={setDifficulty} />
         <button
-          onClick={onStart}
+          onClick={() => onStart(difficulty)}
           className="bg-amber-400 hover:bg-amber-200 text-ink font-display text-xs px-5 py-3 rounded-md tracking-widest transition"
         >
           start
