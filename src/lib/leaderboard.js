@@ -49,13 +49,14 @@ function addLocalScore(entry) {
 
 /**
  * Submit a score. Returns the top N leaderboard entries after insertion.
- * @param {{ name: string, score: number, level: number }} entry
+ * @param {{ name: string, score: number, level: number, difficulty?: string }} entry
  */
 export async function submitScore(entry) {
   const clean = {
     name: (entry.name || "anon").slice(0, 16),
     score: Math.max(0, Math.floor(entry.score || 0)),
     level: Math.max(1, Math.floor(entry.level || 1)),
+    difficulty: entry.difficulty || "normal",
   };
 
   try {
