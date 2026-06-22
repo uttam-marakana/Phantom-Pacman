@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   CELL,
+  DEFAULT_DIFFICULTY,
   GHOST_START,
   MAZE_TEMPLATE,
   PLAYER_START,
   POINTS,
-  STARTING_LIVES,
-  TIMINGS,
+  TICK_MS,
+  getLevelTimings,
 } from "../game/constants";
 import {
   canMove,
@@ -14,32 +15,39 @@ import {
   countRemainingPellets,
   pickGhostDirection,
 } from "../game/logic";
+import { sfx } from "../lib/sound";
 
-function freshState() {
+function freshState(difficulty) {
+  const timings = getLevelTimings(difficulty, 1);
   return {
     maze: cloneMaze(MAZE_TEMPLATE),
     player: { ...PLAYER_START },
     ghosts: GHOST_START.map((g) => ({ ...g, eaten: false })),
     score: 0,
-    lives: STARTING_LIVES,
+    lives: timings.lives,
     level: 1,
     powered: false,
     powerTicks: 0,
-    status: "ready", // ready | playing | paused | won-level | game-over
+    difficulty,
+    status: "ready", // ready | playing | paused | game-over
     message: "Use arrow keys or the on-screen pad",
   };
 }
 
-export function useGhostGame() {
-  const [state, setState] = useState(freshState);
+export function useGhostGame(initialDifficulty = DEFAULT_DIFFICULTY) {
+  const [state, setState] = useState(() => freshState(initialDifficulty));
   const stateRef = useRef(state);
   stateRef.current = state;
 
   const ghostIntervalRef = useRef(null);
   const tickIntervalRef = useRef(null);
 
-  const start = useCallback(() => {
-    setState((s) => ({ ...freshState(), status: "playing", message: "" }));
+  const start = useCallback((difficulty) => {
+    setState((s) => ({
+      ...freshState(difficulty ?? s.difficulty),
+      status: "playing",
+      message: "",
+    }));
   }, []);
 
   const pauseToggle = useCallback(() => {
@@ -57,6 +65,7 @@ export function useGhostGame() {
       const ny = s.player.y + dy;
       if (!canMove(s.maze, nx, ny)) return s;
 
+      const timings = getLevelTimings(s.difficulty, s.level);
       const maze = cloneMaze(s.maze);
       let score = s.score;
       let powered = s.powered;
@@ -67,17 +76,18 @@ export function useGhostGame() {
       if (cell === CELL.DOT) {
         score += POINTS.DOT;
         maze[ny][nx] = CELL.EMPTY;
+        sfx.dot();
       } else if (cell === CELL.POWER) {
         score += POINTS.POWER;
         maze[ny][nx] = CELL.EMPTY;
         powered = true;
-        powerTicks = TIMINGS.POWER_DURATION_TICKS;
+        powerTicks = timings.powerTicks;
         message = "Powered up — hunt the ghosts!";
+        sfx.power();
       }
 
       const player = { x: nx, y: ny };
 
-      // Collision check right after the move, before ghosts step.
       let lives = s.lives;
       let ghosts = s.ghosts;
       let status = s.status;
@@ -89,6 +99,7 @@ export function useGhostGame() {
           if (powered) {
             score += POINTS.GHOST;
             message = "Ghost eaten! +200";
+            sfx.ghostEaten();
             return { ...g, eaten: true };
           }
           collidedDeath = true;
@@ -101,10 +112,14 @@ export function useGhostGame() {
         lives -= 1;
         message = lives <= 0 ? "" : "Caught! Watch out...";
         finalPlayer = { ...PLAYER_START };
-        if (lives <= 0) status = "game-over";
+        if (lives <= 0) {
+          status = "game-over";
+          sfx.gameOver();
+        } else {
+          sfx.death();
+        }
       }
 
-      // Win check.
       const remaining = countRemainingPellets(maze);
       let level = s.level;
       let nextMaze = maze;
@@ -118,6 +133,7 @@ export function useGhostGame() {
         powered = false;
         powerTicks = 0;
         message = `Level ${level}!`;
+        sfx.levelUp();
       }
 
       return {
@@ -136,9 +152,10 @@ export function useGhostGame() {
     });
   }, []);
 
-  // Ghost movement loop.
+  // Ghost movement loop — interval duration follows the current level's
+  // ramped speed, so it's re-armed whenever level or difficulty changes.
   useEffect(() => {
-    ghostIntervalRef.current = setInterval(() => {
+    function tick() {
       setState((s) => {
         if (s.status !== "playing") return s;
 
@@ -159,12 +176,19 @@ export function useGhostGame() {
             if (s.powered) {
               scoreDelta += POINTS.GHOST;
               message = "Ghost eaten! +200";
+              sfx.ghostEaten();
               return { ...g, eaten: true };
             }
             lives -= 1;
             player = { ...PLAYER_START };
-            message = lives <= 0 ? "" : "Caught! Watch out...";
-            if (lives <= 0) status = "game-over";
+            if (lives <= 0) {
+              status = "game-over";
+              message = "";
+              sfx.gameOver();
+            } else {
+              message = "Caught! Watch out...";
+              sfx.death();
+            }
           }
           return g;
         });
@@ -179,10 +203,12 @@ export function useGhostGame() {
           score: s.score + scoreDelta,
         };
       });
-    }, TIMINGS.GHOST_MOVE_MS);
+    }
 
+    const timings = getLevelTimings(state.difficulty, state.level);
+    ghostIntervalRef.current = setInterval(tick, timings.ghostMoveMs);
     return () => clearInterval(ghostIntervalRef.current);
-  }, []);
+  }, [state.difficulty, state.level]);
 
   // Power countdown loop.
   useEffect(() => {
@@ -201,7 +227,7 @@ export function useGhostGame() {
         }
         return { ...s, powerTicks };
       });
-    }, TIMINGS.TICK_MS);
+    }, TICK_MS);
 
     return () => clearInterval(tickIntervalRef.current);
   }, []);
